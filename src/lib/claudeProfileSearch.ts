@@ -132,25 +132,24 @@ const SYSTEM_PROMPT = `<SYSTEM_INSTRUCTIONS>
   - business_street_address /
     business_city / business_state /
     business_zip_code:       For businesses WITH a website, fetch the website's contact
-                             or about page first. For businesses WITHOUT a website, use
-                             BBB (Better Business Bureau) as your primary address source
-                             — search "[business name] [city] [state] site:bbb.org" and
-                             fetch the BBB profile page. A single BBB page typically
-                             yields street, city, state, zip, industry, and entity type
-                             in one fetch. If no BBB page exists, fall back to Google
-                             Business Profile or Yelp.
+                             or about page first. For businesses WITHOUT a website, the
+                             Secretary of State filing (fetched for business_start_date
+                             below) also contains the registered address — extract it
+                             from the same fetch. If the SoS page does not show a street
+                             address, search Manta ("[business name] [city] [state]
+                             site:manta.com") as a secondary source.
   - business_start_date:   Secretary of State filing for the business's state is the
-                           most reliable source. Use it as one of your 3 planned sources
-                           if the state is known.
+                           most reliable source. Use it as one of your planned sources
+                           if the state is known. The filing also contains the registered
+                           address and entity type — extract all three in one fetch.
   - number_of_employees:   LinkedIn company page (shows employee range) or the business
                            website's About/Team page.
   - number_of_locations:   The business's own website locations/store-finder page, or
                            a Google Maps search that shows multiple locations.
   - has_bankruptcy:        A targeted news or court records search for the business name
                            and owner name combined with the word "bankruptcy".
-  - entity_type:           Secretary of State filing is authoritative. For no-website
-                           businesses, the BBB profile page (fetched for address above)
-                           also commonly lists entity type — no extra fetch required.
+  - entity_type:           Secretary of State filing is authoritative (extract alongside
+                           address and start date in the same fetch).
 
   SEARCH LIMITS — hard stops, non-negotiable:
   - Maximum 5 web searches total
@@ -430,13 +429,19 @@ function buildUserMessage(intake: IntakeFormData): string {
   if (intake.ein) lines.push(`EIN: ${intake.ein}`)
   const fullStateName = Object.entries(STATE_NAME_TO_ABBR).find(([, abbr]) => abbr === intake.businessState)?.[0] ?? intake.businessState
   const stateTitleCase = fullStateName.replace(/\b\w/g, (c) => c.toUpperCase())
-  lines.push(
+  const closingLines = [
     '',
     'For business_street_address, return only a physical street address — never a PO Box.',
     `For business_start_date, search "${intake.businessName} ${stateTitleCase} Secretary of State" to find the official registration date.`,
     `For has_bankruptcy, search "${intake.businessName} ${intake.ownerName} bankruptcy" to check for any filing history.`,
-    'Search public sources and call the output_structured_data tool with all findings.'
-  )
+  ]
+  if (!intake.websiteUrl) {
+    closingLines.push(
+      `As your 5th and final source, search for this business's website (e.g. "${intake.businessName} official website"), then fetch its contact or about page to fill in any fields not yet found.`
+    )
+  }
+  closingLines.push('Search public sources and call the output_structured_data tool with all findings.')
+  lines.push(...closingLines)
   return lines.join('\n')
 }
 

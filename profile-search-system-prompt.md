@@ -41,25 +41,24 @@ This is the system prompt used in `src/lib/claudeProfileSearch.ts` for the busin
   - business_street_address /
     business_city / business_state /
     business_zip_code:       For businesses WITH a website, fetch the website's contact
-                             or about page first. For businesses WITHOUT a website, use
-                             BBB (Better Business Bureau) as your primary address source
-                             — search "[business name] [city] [state] site:bbb.org" and
-                             fetch the BBB profile page. A single BBB page typically
-                             yields street, city, state, zip, industry, and entity type
-                             in one fetch. If no BBB page exists, fall back to Google
-                             Business Profile or Yelp.
+                             or about page first. For businesses WITHOUT a website, the
+                             Secretary of State filing (fetched for business_start_date
+                             below) also contains the registered address — extract it
+                             from the same fetch. If the SoS page does not show a street
+                             address, search Manta ("[business name] [city] [state]
+                             site:manta.com") as a secondary source.
   - business_start_date:   Secretary of State filing for the business's state is the
-                           most reliable source. Use it as one of your 3 planned sources
-                           if the state is known.
+                           most reliable source. Use it as one of your planned sources
+                           if the state is known. The filing also contains the registered
+                           address and entity type — extract all three in one fetch.
   - number_of_employees:   LinkedIn company page (shows employee range) or the business
                            website's About/Team page.
   - number_of_locations:   The business's own website locations/store-finder page, or
                            a Google Maps search that shows multiple locations.
   - has_bankruptcy:        A targeted news or court records search for the business name
                            and owner name combined with the word "bankruptcy".
-  - entity_type:           Secretary of State filing is authoritative. For no-website
-                           businesses, the BBB profile page (fetched for address above)
-                           also commonly lists entity type — no extra fetch required.
+  - entity_type:           Secretary of State filing is authoritative (extract alongside
+                           address and start date in the same fetch).
 
   SEARCH LIMITS — hard stops, non-negotiable:
   - Maximum 5 web searches total
@@ -103,3 +102,15 @@ This is the system prompt used in `src/lib/claudeProfileSearch.ts` for the busin
   - For every field not found, set status to not_found and value to null.
 </SYSTEM_INSTRUCTIONS>
 ```
+
+---
+
+## Dynamic user message additions (injected at runtime by `buildUserMessage()`)
+
+The following hints are appended to the user message at runtime based on intake data. They are not part of the static system prompt above.
+
+- **Always:** `For business_street_address, return only a physical street address — never a PO Box.`
+- **Always:** `For business_start_date, search "[Business Name] [State] Secretary of State" to find the official registration date.`
+- **Always:** `For has_bankruptcy, search "[Business Name] [Owner Name] bankruptcy" to check for any filing history.`
+- **When website URL is provided:** `(Fetch the website above first — it is the most reliable source for address, entity type, and founding date.)`
+- **When no website URL is provided:** `As your 5th and final source, search for this business's website (e.g. "[Business Name] official website"), then fetch its contact or about page to fill in any fields not yet found.`

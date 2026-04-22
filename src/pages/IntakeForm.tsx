@@ -49,6 +49,16 @@ const DEMO_BUSINESSES = [
     businessZip: '84123',
     websiteUrl: 'https://www.landscapingmurray.com/',
   },
+  {
+    label: 'AAA Marine Salvage LLC',
+    businessName: 'AAA MARINE SALVAGE LLC',
+    ownerName: 'Raquel Gonzalez',
+    businessPhone: '(239) 850-9889',
+    businessCity: 'Fort Myers',
+    businessState: 'FL',
+    businessZip: '33967',
+    websiteUrl: '',
+  },
 ]
 
 import { useForm } from 'react-hook-form'
