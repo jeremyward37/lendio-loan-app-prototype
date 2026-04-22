@@ -167,6 +167,7 @@ export default function ProfileReview() {
   const intake = useApplicationStore((s) => s.intake)
   const setConfirmedProfile = useApplicationStore((s) => s.setConfirmedProfile)
   const setCurrentScreen = useApplicationStore((s) => s.setCurrentScreen)
+  const resetApplication = useApplicationStore((s) => s.resetApplication)
   const [acknowledged, setAcknowledged] = useState(false)
 
   const sourceProfile = confirmedProfile ?? resolvedProfile
@@ -217,13 +218,23 @@ export default function ProfileReview() {
         className="w-full bg-white rounded-2xl shadow-sm border p-8"
         style={{ maxWidth: '720px', borderColor: '#DADFE3' }}
       >
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-2" style={{ color: '#192526' }}>
-            Review your business profile
-          </h1>
-          <p className="text-sm" style={{ color: '#6B717A' }}>
-            Review the details below and correct anything that looks wrong before continuing.
-          </p>
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold mb-2" style={{ color: '#192526' }}>
+              Review your business profile
+            </h1>
+            <p className="text-sm" style={{ color: '#6B717A' }}>
+              Review the details below and correct anything that looks wrong before continuing.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { resetApplication(); navigate('/') }}
+            className="text-sm font-medium whitespace-nowrap ml-6"
+            style={{ color: '#6B717A' }}
+          >
+            ← Back to Start
+          </button>
         </div>
 
         {/* AI banner */}
