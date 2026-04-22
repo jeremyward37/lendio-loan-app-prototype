@@ -445,7 +445,7 @@ export function runProfileSearch(intake: IntakeFormData, applicationStore: AppSt
     try {
       console.log('[ProfileSearch] Starting search for:', intake.businessName)
 
-      const response = await fetch('/api/claude/v1/messages', {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         signal: controller.signal,
         headers: {
