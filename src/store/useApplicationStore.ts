@@ -16,6 +16,7 @@ interface ApplicationState {
   confirmedProfile: ProfileData | null
   selectedProductIds: LoanProductId[]
   currentScreen: AppScreen
+  profileSearchStatus: 'idle' | 'searching' | 'complete'
 
   setIntake: (intake: IntakeFormData) => void
   setFundingAnswer: (key: keyof FundingAnswers, value: FundingAnswers[keyof FundingAnswers]) => void
@@ -24,6 +25,7 @@ interface ApplicationState {
   setConfirmedProfile: (profile: ProfileData) => void
   setSelectedProductIds: (ids: LoanProductId[]) => void
   setCurrentScreen: (screen: AppScreen) => void
+  setProfileSearchStatus: (status: 'idle' | 'searching' | 'complete') => void
   resetApplication: () => void
 }
 
@@ -35,6 +37,7 @@ const initialState = {
   confirmedProfile: null,
   selectedProductIds: [],
   currentScreen: 1 as AppScreen,
+  profileSearchStatus: 'idle' as const,
 }
 
 export const useApplicationStore = create<ApplicationState>()(
@@ -59,6 +62,8 @@ export const useApplicationStore = create<ApplicationState>()(
       setSelectedProductIds: (ids) => set({ selectedProductIds: ids }),
 
       setCurrentScreen: (screen) => set({ currentScreen: screen }),
+
+      setProfileSearchStatus: (status) => set({ profileSearchStatus: status }),
 
       resetApplication: () => set(initialState),
     }),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useApplicationStore } from '../store/useApplicationStore'
@@ -32,6 +32,8 @@ type FormValues = {
   isNonprofit: string
   hasBankruptcy: string
   bankruptcyStatus: string
+  businessIndustry: string
+  naicsCode: string
 }
 
 function profileToForm(profile: ProfileData): FormValues {
@@ -53,6 +55,8 @@ function profileToForm(profile: ProfileData): FormValues {
     isNonprofit: profile.isNonprofit.value,
     hasBankruptcy: profile.hasBankruptcy.value,
     bankruptcyStatus: profile.bankruptcyStatus.value,
+    businessIndustry: profile.businessIndustry.value,
+    naicsCode: profile.naicsCode.value,
   }
 }
 
@@ -106,10 +110,61 @@ const SectionHeader = ({ children }: { children: React.ReactNode }) => (
   </div>
 )
 
+const LOADER_MESSAGES: [number, string][] = [
+  [0, 'Searching web sources for your business...'],
+  [20, 'Checking business registrations and directories...'],
+  [45, 'Analyzing findings...'],
+  [70, 'Finalizing your business profile...'],
+]
+const SEARCH_TIMEOUT_SECONDS = 90
+
+function SearchingLoader() {
+  const [elapsed, setElapsed] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setElapsed((s) => Math.min(s + 1, SEARCH_TIMEOUT_SECONDS))
+    }, 1000)
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  const msg = [...LOADER_MESSAGES].reverse().find(([t]) => elapsed >= t)![1]
+  const progress = Math.min((elapsed / SEARCH_TIMEOUT_SECONDS) * 100, 100)
+
+  return (
+    <div className="flex flex-col items-center py-24">
+      <div
+        className="w-12 h-12 rounded-full border-4 animate-spin mb-6"
+        style={{ borderColor: '#EAEBEB', borderTopColor: '#0800A6' }}
+      />
+      <h2 className="text-lg font-semibold mb-2" style={{ color: '#192526' }}>
+        {msg}
+      </h2>
+      <p className="text-sm text-center mb-6" style={{ color: '#6B717A', maxWidth: '320px' }}>
+        Our AI is pulling information from public sources about your business.
+      </p>
+      <div
+        className="w-64 h-1.5 rounded-full overflow-hidden"
+        style={{ backgroundColor: '#EAEBEB' }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-1000"
+          style={{ width: `${progress}%`, backgroundColor: '#0800A6' }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function ProfileReview() {
   const navigate = useNavigate()
   const resolvedProfile = useApplicationStore((s) => s.resolvedProfile)
   const confirmedProfile = useApplicationStore((s) => s.confirmedProfile)
+  const profileSearchStatus = useApplicationStore((s) => s.profileSearchStatus)
+  const intake = useApplicationStore((s) => s.intake)
   const setConfirmedProfile = useApplicationStore((s) => s.setConfirmedProfile)
   const setCurrentScreen = useApplicationStore((s) => s.setCurrentScreen)
   const [acknowledged, setAcknowledged] = useState(false)
@@ -131,17 +186,18 @@ export default function ProfileReview() {
   const isAiField = (key: keyof FormValues) => {
     const profileKey = key as keyof ProfileData
     if (!sourceProfile) return false
+    if (!watchedValues[key]) return false
     const field = sourceProfile[profileKey]
     return field.found && watchedValues[key] === field.value
   }
 
-  // A field is empty if the AI didn't find a value
-  const isEmpty = (key: keyof ProfileData) =>
-    !!(sourceProfile && !sourceProfile[key].found)
+  // A field is empty if the AI didn't find a value AND the user hasn't filled it in
+  const isEmpty = (key: keyof FormValues) =>
+    !!(sourceProfile && !sourceProfile[key as keyof ProfileData].found && !watchedValues[key])
 
   const fieldProps = (key: keyof FormValues) => ({
     isAi: isAiField(key),
-    isEmpty: isEmpty(key as keyof ProfileData),
+    isEmpty: isEmpty(key),
   })
 
   const onSubmit = (data: FormValues) => {
@@ -151,21 +207,8 @@ export default function ProfileReview() {
     navigate('/loan-products')
   }
 
-  if (!resolvedProfile) {
-    return (
-      <div className="flex flex-col items-center py-24">
-        <div
-          className="w-12 h-12 rounded-full border-4 animate-spin mb-6"
-          style={{ borderColor: '#EAEBEB', borderTopColor: '#0800A6' }}
-        />
-        <h2 className="text-lg font-semibold mb-2" style={{ color: '#192526' }}>
-          Gathering your business details...
-        </h2>
-        <p className="text-sm text-center" style={{ color: '#6B717A', maxWidth: '320px' }}>
-          Our AI agents are pulling information from public sources. This will only take a moment.
-        </p>
-      </div>
-    )
+  if (!resolvedProfile || profileSearchStatus === 'searching') {
+    return <SearchingLoader />
   }
 
   return (
@@ -199,12 +242,23 @@ export default function ProfileReview() {
           <div className="mb-8">
             <SectionHeader>Business Details</SectionHeader>
             <div className="grid grid-cols-1 gap-5">
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium mb-1.5" style={{ color: '#2F3637' }}>
+                  Business Name
+                </label>
+                <div
+                  className={inputClass}
+                  style={{ borderColor: '#DADFE3', color: '#2F3637', backgroundColor: '#F8FAFC' }}
+                >
+                  {intake?.businessName}
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-4">
                 <FieldWrapper label="Business Street" {...fieldProps('businessStreet')}>
                   <input
                     {...register('businessStreet')}
                     type="text"
-                    placeholder="Not found — please fill in"
+                    placeholder="Street address"
                     className={inputClass}
                     style={getInputStyle(isEmpty('businessStreet'), isAiField('businessStreet'))}
                   />
@@ -229,7 +283,7 @@ export default function ProfileReview() {
                     <input
                       {...register('businessZip')}
                       type="text"
-                      placeholder="Not found — please fill in"
+                      placeholder="ZIP code"
                       className={inputClass}
                       style={getInputStyle(isEmpty('businessZip'), isAiField('businessZip'))}
                     />
@@ -271,11 +325,22 @@ export default function ProfileReview() {
           <div className="mb-8">
             <SectionHeader>Owner Details</SectionHeader>
             <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-medium mb-1.5" style={{ color: '#2F3637' }}>
+                  Owner Name
+                </label>
+                <div
+                  className={inputClass}
+                  style={{ borderColor: '#DADFE3', color: '#2F3637', backgroundColor: '#F8FAFC' }}
+                >
+                  {intake?.ownerName}
+                </div>
+              </div>
               <FieldWrapper label="Owner Street" {...fieldProps('ownerStreet')}>
                 <input
                   {...register('ownerStreet')}
                   type="text"
-                  placeholder="Not found — please fill in"
+                  placeholder="Street address"
                   className={inputClass}
                   style={getInputStyle(isEmpty('ownerStreet'), isAiField('ownerStreet'))}
                 />
@@ -313,6 +378,24 @@ export default function ProfileReview() {
           <div className="mb-8">
             <SectionHeader>Business Information</SectionHeader>
             <div className="grid grid-cols-2 gap-4">
+              <FieldWrapper label="Industry" {...fieldProps('businessIndustry')}>
+                <input
+                  {...register('businessIndustry')}
+                  type="text"
+                  placeholder="e.g. Department Stores"
+                  className={inputClass}
+                  style={getInputStyle(isEmpty('businessIndustry'), isAiField('businessIndustry'))}
+                />
+              </FieldWrapper>
+              <FieldWrapper label="NAICS Code" {...fieldProps('naicsCode')}>
+                <input
+                  {...register('naicsCode')}
+                  type="text"
+                  placeholder="e.g. 455110"
+                  className={inputClass}
+                  style={getInputStyle(isEmpty('naicsCode'), isAiField('naicsCode'))}
+                />
+              </FieldWrapper>
               <FieldWrapper label="EIN" {...fieldProps('ein')}>
                 <input
                   {...register('ein')}
@@ -327,7 +410,7 @@ export default function ProfileReview() {
                   {...register('numberOfEmployees')}
                   type="number"
                   min="0"
-                  placeholder="Not found — please fill in"
+                  placeholder="e.g. 12"
                   className={inputClass}
                   style={getInputStyle(isEmpty('numberOfEmployees'), isAiField('numberOfEmployees'))}
                 />

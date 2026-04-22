@@ -22,7 +22,7 @@ export default function AppShell() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col items-center px-4 py-8">
-        <div className="w-full" style={{ maxWidth: '860px' }}>
+        <div className="w-full" style={{ maxWidth: '1100px' }}>
           <Outlet />
         </div>
       </main>

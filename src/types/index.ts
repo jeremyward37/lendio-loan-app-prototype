@@ -3,6 +3,8 @@ export interface IntakeFormData {
   ownerName: string
   businessCity: string
   businessState: string
+  businessZip: string
+  businessPhone: string
   websiteUrl?: string
   ein?: string
 }
@@ -38,6 +40,8 @@ export interface ProfileData {
   isNonprofit: ProfileField
   hasBankruptcy: ProfileField
   bankruptcyStatus: ProfileField
+  businessIndustry: ProfileField
+  naicsCode: ProfileField
 }
 
 export type AgentName =
