@@ -12,6 +12,16 @@ const WEB_SEARCH_TOOL = {
   name: 'web_search',
 }
 
+// Valid Lendio industry values (used in schema enum and normalizer)
+const LENDIO_INDUSTRY_VALUES = [
+  'agricultureForestry', 'artsEntertainment', 'adultEntertainment', 'gambling',
+  'automotive', 'construction', 'ecommerce', 'education', 'finance', 'healthcare',
+  'socialAssistance', 'informationMedia', 'legalServices', 'mining', 'oilGas',
+  'manufacturing', 'governmentPublic', 'realEstate', 'religiousOrganizations',
+  'restaurants', 'retail', 'firearms', 'gasStations', 'transportation',
+  'freightTrucking', 'travelAgencies', 'utilities', 'wholesale', 'other',
+] as const
+
 // Inline field schemas — Anthropic's API does not support $ref/$defs
 const STRING_FIELD = {
   type: 'object' as const,
@@ -68,6 +78,23 @@ const OUTPUT_STRUCTURED_DATA_TOOL = {
       has_bankruptcy: BOOL_FIELD,
       business_industry: STRING_FIELD,
       naics_code: STRING_FIELD,
+      lendio_industry: {
+        type: 'object' as const,
+        properties: {
+          value: { type: ['string', 'null'], enum: [...LENDIO_INDUSTRY_VALUES, null] },
+          status: { type: 'string', enum: ['found', 'not_found', 'source_failed'] },
+          source: {
+            type: ['object', 'null'],
+            properties: {
+              name: { type: 'string' },
+              type: { type: 'string' },
+              url: { type: ['string', 'null'] },
+              retrieved_at: { type: 'string' },
+            },
+          },
+        },
+        required: ['value', 'status', 'source'],
+      },
       number_of_employees: STRING_FIELD,
       annual_profits: STRING_FIELD,
       ein: STRING_FIELD,
@@ -85,6 +112,7 @@ const OUTPUT_STRUCTURED_DATA_TOOL = {
       'has_bankruptcy',
       'business_industry',
       'naics_code',
+      'lendio_industry',
       'number_of_employees',
       'annual_profits',
       'ein',
@@ -118,6 +146,7 @@ const SYSTEM_PROMPT = `<SYSTEM_INSTRUCTIONS>
     - has_bankruptcy            — true/false: any bankruptcy filings for the business or owner
     - business_industry         — industry or business category (e.g. "Department Stores")
     - naics_code                — 6-digit NAICS code for the business (e.g. 455110)
+    - lendio_industry           — the closest matching Lendio industry category (inferred from business_industry; see DATA INTEGRITY)
     - number_of_employees       — headcount, any estimate acceptable
     - annual_profits            — revenue or profit figures if publicly available
     - ein                       — Employer Identification Number
@@ -172,6 +201,16 @@ const SYSTEM_PROMPT = `<SYSTEM_INSTRUCTIONS>
     using your knowledge of the NAICS classification system. Set status to found,
     source.type to "inferred", source.name to "NAICS taxonomy", and source.url
     to null.
+  - Exception: always populate lendio_industry by selecting the closest matching
+    value from the allowed enum based on business_industry or the business type.
+    Valid values: agricultureForestry, artsEntertainment, adultEntertainment,
+    gambling, automotive, construction, ecommerce, education, finance, healthcare,
+    socialAssistance, informationMedia, legalServices, mining, oilGas,
+    manufacturing, governmentPublic, realEstate, religiousOrganizations,
+    restaurants, retail, firearms, gasStations, transportation, freightTrucking,
+    travelAgencies, utilities, wholesale, other.
+    Use "other" if no category is a good match. Set source.type to "inferred",
+    source.name to "Lendio industry taxonomy", and source.url to null.
 
   SOURCE METADATA RULES:
   - For every field you populate, record:
@@ -277,6 +316,10 @@ function normalizeNaicsCode(raw: string): string {
   return digits.length >= 4 && digits.length <= 6 ? digits : ''
 }
 
+function normalizeLendioIndustry(raw: string): string {
+  return (LENDIO_INDUSTRY_VALUES as readonly string[]).includes(raw) ? raw : ''
+}
+
 interface NormalizeOpts {
   boolToYesNo?: boolean
   normalizeDate?: boolean
@@ -284,6 +327,7 @@ interface NormalizeOpts {
   normalizeEntity?: boolean
   numericOnly?: boolean
   normalizeNaics?: boolean
+  normalizeLendioIndustry?: boolean
 }
 
 function normalizeToProfileField(
@@ -313,6 +357,9 @@ function normalizeToProfileField(
   }
   if (opts.normalizeNaics) {
     value = normalizeNaicsCode(value)
+  }
+  if (opts.normalizeLendioIndustry) {
+    value = normalizeLendioIndustry(value)
   }
 
   if (value === '') {
@@ -351,6 +398,7 @@ function buildEmptyProfile(intake: IntakeFormData): ProfileData {
     bankruptcyStatus: empty(),
     businessIndustry: empty(),
     naicsCode: empty(),
+    lendioIndustry: empty(),
   }
 }
 
@@ -399,6 +447,7 @@ function mapOutputToProfileData(
     bankruptcyStatus: { value: '', source: 'Not found', found: false },
     businessIndustry: normalizeToProfileField(output.business_industry),
     naicsCode: normalizeToProfileField(output.naics_code, { normalizeNaics: true }),
+    lendioIndustry: normalizeToProfileField(output.lendio_industry, { normalizeLendioIndustry: true }),
   }
 
   // Override EIN from intake if provided

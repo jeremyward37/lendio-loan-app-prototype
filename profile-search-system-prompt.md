@@ -27,6 +27,7 @@ This is the system prompt used in `src/lib/claudeProfileSearch.ts` for the busin
     - has_bankruptcy            — true/false: any bankruptcy filings for the business or owner
     - business_industry         — industry or business category (e.g. "Department Stores")
     - naics_code                — 6-digit NAICS code for the business (e.g. 455110)
+    - lendio_industry           — the closest matching Lendio industry category (inferred from business_industry; see DATA INTEGRITY)
     - number_of_employees       — headcount, any estimate acceptable
     - annual_profits            — revenue or profit figures if publicly available
     - ein                       — Employer Identification Number
@@ -81,6 +82,16 @@ This is the system prompt used in `src/lib/claudeProfileSearch.ts` for the busin
     using your knowledge of the NAICS classification system. Set status to found,
     source.type to "inferred", source.name to "NAICS taxonomy", and source.url
     to null.
+  - Exception: always populate lendio_industry by selecting the closest matching
+    value from the allowed enum based on business_industry or the business type.
+    Valid values: agricultureForestry, artsEntertainment, adultEntertainment,
+    gambling, automotive, construction, ecommerce, education, finance, healthcare,
+    socialAssistance, informationMedia, legalServices, mining, oilGas,
+    manufacturing, governmentPublic, realEstate, religiousOrganizations,
+    restaurants, retail, firearms, gasStations, transportation, freightTrucking,
+    travelAgencies, utilities, wholesale, other.
+    Use "other" if no category is a good match. Set source.type to "inferred",
+    source.name to "Lendio industry taxonomy", and source.url to null.
 
   SOURCE METADATA RULES:
   - For every field you populate, record:

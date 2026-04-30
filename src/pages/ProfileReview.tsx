@@ -4,6 +4,38 @@ import { useNavigate } from 'react-router-dom'
 import { useApplicationStore } from '../store/useApplicationStore'
 import type { ProfileData } from '../types'
 
+const LENDIO_INDUSTRIES = [
+  { label: 'Agriculture, Forestry, Fishing and Hunting', value: 'agricultureForestry', naics: 11 },
+  { label: 'Arts, Entertainment, and Recreation', value: 'artsEntertainment', naics: 71 },
+  { label: 'Adult Entertainment', value: 'adultEntertainment', naics: 71 },
+  { label: 'Gambling', value: 'gambling', naics: 7132 },
+  { label: 'Automobile Dealers & Parts', value: 'automotive', naics: 441 },
+  { label: 'Construction', value: 'construction', naics: 23 },
+  { label: 'Ecommerce', value: 'ecommerce', naics: 454110 },
+  { label: 'Education', value: 'education', naics: 61 },
+  { label: 'Finance and Insurance', value: 'finance', naics: 52 },
+  { label: 'Healthcare', value: 'healthcare', naics: 62 },
+  { label: 'Social Assistance', value: 'socialAssistance', naics: 624 },
+  { label: 'IT, Media, or Publishing', value: 'informationMedia', naics: 51 },
+  { label: 'Legal Services', value: 'legalServices', naics: 5411 },
+  { label: 'Mining (except Oil and Gas)', value: 'mining', naics: 21 },
+  { label: 'Oil and Gas Extraction', value: 'oilGas', naics: 211 },
+  { label: 'Manufacturing', value: 'manufacturing', naics: 31 },
+  { label: 'Political, Governmental, or Public Organizations', value: 'governmentPublic', naics: 92 },
+  { label: 'Real Estate', value: 'realEstate', naics: 53 },
+  { label: 'Religious Organizations', value: 'religiousOrganizations', naics: 8131 },
+  { label: 'Restaurants and Food Services', value: 'restaurants', naics: 722 },
+  { label: 'Retail Stores', value: 'retail', naics: 44 },
+  { label: 'Firearm Sales', value: 'firearms', naics: 452 },
+  { label: 'Gas Stations', value: 'gasStations', naics: 447 },
+  { label: 'Transportation and Warehousing', value: 'transportation', naics: 48 },
+  { label: 'Freight Trucking', value: 'freightTrucking', naics: 484 },
+  { label: 'Travel Agencies', value: 'travelAgencies', naics: 5616 },
+  { label: 'Utilities', value: 'utilities', naics: 22 },
+  { label: 'Wholesale Trade', value: 'wholesale', naics: 42 },
+  { label: 'All Other', value: 'other', naics: null },
+]
+
 const ENTITY_TYPES = ['Sole Proprietor', 'LLC', 'S-Corp', 'C-Corp', 'Partnership', 'Nonprofit']
 const BANKRUPTCY_STATUSES = ['Discharged', 'Active', 'Dismissed']
 const US_STATES = [
@@ -34,6 +66,7 @@ type FormValues = {
   bankruptcyStatus: string
   businessIndustry: string
   naicsCode: string
+  lendioIndustry: string
 }
 
 function profileToForm(profile: ProfileData): FormValues {
@@ -57,6 +90,7 @@ function profileToForm(profile: ProfileData): FormValues {
     bankruptcyStatus: profile.bankruptcyStatus.value,
     businessIndustry: profile.businessIndustry.value,
     naicsCode: profile.naicsCode.value,
+    lendioIndustry: profile.lendioIndustry.value,
   }
 }
 
@@ -182,6 +216,8 @@ export default function ProfileReview() {
 
   const watchedValues = watch()
   const hasBankruptcy = watchedValues.hasBankruptcy
+  const lendioNaics = LENDIO_INDUSTRIES.find(i => i.value === watchedValues.lendioIndustry)?.naics ?? null
+  const lendioNaicsDisplay = lendioNaics !== null ? String(lendioNaics) : 'N/A'
 
   // A field is "AI" if it was found by AI AND the user hasn't changed it from the original value
   const isAiField = (key: keyof FormValues) => {
@@ -405,6 +441,27 @@ export default function ProfileReview() {
                   placeholder="e.g. 455110"
                   className={inputClass}
                   style={getInputStyle(isEmpty('naicsCode'), isAiField('naicsCode'))}
+                />
+              </FieldWrapper>
+              <FieldWrapper label="Lendio Industry" {...fieldProps('lendioIndustry')}>
+                <select
+                  {...register('lendioIndustry')}
+                  className={inputClass}
+                  style={getInputStyle(isEmpty('lendioIndustry'), isAiField('lendioIndustry'))}
+                >
+                  <option value="">Select industry</option>
+                  {LENDIO_INDUSTRIES.map(i => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </select>
+              </FieldWrapper>
+              <FieldWrapper label="Lendio NAICS">
+                <input
+                  type="text"
+                  readOnly
+                  value={lendioNaicsDisplay}
+                  className={inputClass}
+                  style={{ borderColor: '#DADFE3', color: '#2F3637', background: '#F5F6F7' }}
                 />
               </FieldWrapper>
               <FieldWrapper label="EIN" {...fieldProps('ein')}>

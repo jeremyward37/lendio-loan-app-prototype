@@ -42,6 +42,7 @@ export interface ProfileData {
   bankruptcyStatus: ProfileField
   businessIndustry: ProfileField
   naicsCode: ProfileField
+  lendioIndustry: ProfileField
 }
 
 export type AgentName =
