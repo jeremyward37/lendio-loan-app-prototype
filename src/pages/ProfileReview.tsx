@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useApplicationStore } from '../store/useApplicationStore'
+import { cancelProfileSearch, buildEmptyProfile } from '../lib/claudeProfileSearch'
 import type { ProfileData } from '../types'
 
 const LENDIO_INDUSTRIES = [
@@ -152,7 +153,7 @@ const LOADER_MESSAGES: [number, string][] = [
 ]
 const SEARCH_TIMEOUT_SECONDS = 90
 
-function SearchingLoader() {
+function SearchingLoader({ onSkip }: { onSkip: () => void }) {
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -181,7 +182,7 @@ function SearchingLoader() {
         Our AI is pulling information from public sources about your business.
       </p>
       <div
-        className="w-64 h-1.5 rounded-full overflow-hidden"
+        className="w-64 h-1.5 rounded-full overflow-hidden mb-8"
         style={{ backgroundColor: '#EAEBEB' }}
       >
         <div
@@ -189,6 +190,14 @@ function SearchingLoader() {
           style={{ width: `${progress}%`, backgroundColor: '#0800A6' }}
         />
       </div>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="text-sm font-medium px-4 py-2 rounded-lg border"
+        style={{ color: '#2F3637', borderColor: '#DADFE3', background: '#fff' }}
+      >
+        Skip this step, I'll enter the details myself
+      </button>
     </div>
   )
 }
@@ -244,8 +253,16 @@ export default function ProfileReview() {
     navigate('/loan-products')
   }
 
+  const handleSkip = () => {
+    cancelProfileSearch()
+    if (intake) {
+      useApplicationStore.getState().setResolvedProfile(buildEmptyProfile(intake))
+    }
+    useApplicationStore.getState().setProfileSearchStatus('complete')
+  }
+
   if (!resolvedProfile || profileSearchStatus === 'searching') {
-    return <SearchingLoader />
+    return <SearchingLoader onSkip={handleSkip} />
   }
 
   return (

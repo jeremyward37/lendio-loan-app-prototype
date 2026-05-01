@@ -374,7 +374,7 @@ function normalizeToProfileField(
 // Empty profile fallback
 // ---------------------------------------------------------------------------
 
-function buildEmptyProfile(intake: IntakeFormData): ProfileData {
+export function buildEmptyProfile(intake: IntakeFormData): ProfileData {
   const empty = (): ProfileField => ({ value: '', source: 'Not found', found: false })
   return {
     businessStreet: empty(),
@@ -498,6 +498,13 @@ function buildUserMessage(intake: IntakeFormData): string {
 // Main exported function
 // ---------------------------------------------------------------------------
 
+let activeController: AbortController | null = null
+
+export function cancelProfileSearch(): void {
+  activeController?.abort()
+  activeController = null
+}
+
 export function runProfileSearch(intake: IntakeFormData, applicationStore: AppStoreApi): void {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
 
@@ -505,6 +512,7 @@ export function runProfileSearch(intake: IntakeFormData, applicationStore: AppSt
 
   ;(async () => {
     const controller = new AbortController()
+    activeController = controller
     const timeoutId = setTimeout(() => controller.abort(), 90_000)
 
     try {
@@ -549,10 +557,12 @@ export function runProfileSearch(intake: IntakeFormData, applicationStore: AppSt
         ? mapOutputToProfileData(claudeOutput, intake)
         : buildEmptyProfile(intake)
 
+      activeController = null
       applicationStore.setResolvedProfile(profile)
       applicationStore.setProfileSearchStatus('complete')
     } catch (err) {
       clearTimeout(timeoutId)
+      activeController = null
       console.error('[ProfileSearch] Error (timeout or network):', err)
       applicationStore.setResolvedProfile(buildEmptyProfile(intake))
       applicationStore.setProfileSearchStatus('complete')
