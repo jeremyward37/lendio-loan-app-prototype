@@ -22,6 +22,20 @@ export interface ProfileField {
   found: boolean
 }
 
+export interface IntakeSearchField {
+  value: string
+  found: boolean
+}
+
+export interface IntakeSearchResult {
+  businessName: IntakeSearchField
+  ownerName: IntakeSearchField
+  businessPhone: IntakeSearchField
+  businessCity: IntakeSearchField
+  businessState: IntakeSearchField
+  businessZip: IntakeSearchField
+}
+
 export interface ProfileData {
   businessStreet: ProfileField
   businessCity: ProfileField

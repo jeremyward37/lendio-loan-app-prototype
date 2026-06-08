@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import AppShell from './components/layout/AppShell'
+import WebsiteEntry from './pages/WebsiteEntry'
 import IntakeForm from './pages/IntakeForm'
 import FundingQuestions from './pages/FundingQuestions'
 import ProfileReview from './pages/ProfileReview'
@@ -14,7 +15,8 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<IntakeForm />} />
+          <Route path="/" element={<WebsiteEntry />} />
+          <Route path="/business-info" element={<IntakeForm />} />
           <Route path="/funding-questions" element={<FundingQuestions />} />
           <Route path="/profile-review" element={<ProfileReview />} />
           <Route path="/loan-products" element={<LoanProductSelection />} />

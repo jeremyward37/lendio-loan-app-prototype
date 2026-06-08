@@ -4,6 +4,7 @@ import type {
   IntakeFormData,
   FundingAnswers,
   ProfileData,
+  IntakeSearchResult,
   LoanProductId,
   AppScreen,
 } from '../types'
@@ -17,6 +18,9 @@ interface ApplicationState {
   selectedProductIds: LoanProductId[]
   currentScreen: AppScreen
   profileSearchStatus: 'idle' | 'searching' | 'complete'
+  websiteEntry: { type: 'website' | 'phone'; value: string } | null
+  intakeSearchStatus: 'idle' | 'searching' | 'complete'
+  intakeSearchResult: IntakeSearchResult | null
 
   setIntake: (intake: IntakeFormData) => void
   setFundingAnswer: (key: keyof FundingAnswers, value: FundingAnswers[keyof FundingAnswers]) => void
@@ -26,6 +30,9 @@ interface ApplicationState {
   setSelectedProductIds: (ids: LoanProductId[]) => void
   setCurrentScreen: (screen: AppScreen) => void
   setProfileSearchStatus: (status: 'idle' | 'searching' | 'complete') => void
+  setWebsiteEntry: (entry: { type: 'website' | 'phone'; value: string }) => void
+  setIntakeSearchStatus: (status: 'idle' | 'searching' | 'complete') => void
+  setIntakeSearchResult: (result: IntakeSearchResult | null) => void
   resetApplication: () => void
 }
 
@@ -38,6 +45,9 @@ const initialState = {
   selectedProductIds: [],
   currentScreen: 1 as AppScreen,
   profileSearchStatus: 'idle' as const,
+  websiteEntry: null,
+  intakeSearchStatus: 'idle' as const,
+  intakeSearchResult: null,
 }
 
 export const useApplicationStore = create<ApplicationState>()(
@@ -64,6 +74,12 @@ export const useApplicationStore = create<ApplicationState>()(
       setCurrentScreen: (screen) => set({ currentScreen: screen }),
 
       setProfileSearchStatus: (status) => set({ profileSearchStatus: status }),
+
+      setWebsiteEntry: (entry) => set({ websiteEntry: entry }),
+
+      setIntakeSearchStatus: (status) => set({ intakeSearchStatus: status }),
+
+      setIntakeSearchResult: (result) => set({ intakeSearchResult: result }),
 
       resetApplication: () => set(initialState),
     }),
