@@ -187,7 +187,6 @@ export async function runIntakeSearch(
     store.setIntakeSearchResult(result)
     store.setIntakeSearchStatus('complete')
   } catch {
-    clearTimeout(timeoutId)
     store.setIntakeSearchResult(buildEmptyResult())
     store.setIntakeSearchStatus('complete')
   }
